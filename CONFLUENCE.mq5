@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
-//|                                         CONFLUENCE V9.3          |
+//|                                         CONFLUENCE V1.0          |
 //|                    INDIVIDUAL SESSION CONTROLS                   |
 //|                           Created By - RATTANAC CHHORM           |
 //+------------------------------------------------------------------+
 #property copyright "RATTANAC CHHORM"
-#property version   "9.3"
+#property version   "1.0"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -88,7 +88,7 @@ int OnInit()
    trade.SetTypeFillingBySymbol(_Symbol);
 
    Print("========================================");
-   Print("CONFLUENCE V9.3 - Created By RATTANAC CHHORM");
+   Print("CONFLUENCE V1.0 - Created By RATTANAC CHHORM");
    Print("Active Sessions:");
    if(SessionSydney) Print("  - Sydney (22:00-07:00 GMT)");
    if(SessionTokyo) Print("  - Tokyo (00:00-09:00 GMT)");
@@ -112,7 +112,7 @@ void OnDeinit(const int reason)
    if(SlowEMAHandle != INVALID_HANDLE) IndicatorRelease(SlowEMAHandle);
    ObjectsDeleteAll(0, "SwingLine_");
    Comment("");
-   Print("CONFLUENCE V9.3 SHUTDOWN");
+   Print("CONFLUENCE V1.0 SHUTDOWN");
 }
 
 //+------------------------------------------------------------------+
@@ -909,7 +909,7 @@ void UpdateDisplay()
 
    string info = "";
    info = info + "╔═══════════════════════════════════════════════════════════════════╗\n";
-   info = info + "║         CONFLUENCE V9.3 - Created By - RATTANAC CHHORM           ║\n";
+   info = info + "║         CONFLUENCE V1.0 - Created By - RATTANAC CHHORM           ║\n";
    info = info + "╠═══════════════════════════════════════════════════════════════════╣\n";
    info = info + "║ Balance: $" + DoubleToString(balance, 2) + "\n";
    info = info + "║ Profit:  $" + DoubleToString(profit, 2) + "\n";
@@ -932,7 +932,7 @@ void UpdateDisplay()
 //+------------------------------------------------------------------+
 void OnTick()
 {
-   ChartSetString(ChartID(), CHART_COMMENT, "CONFLUENCE V9.3 - RATTANAC CHHORM");
+   ChartSetString(ChartID(), CHART_COMMENT, "CONFLUENCE V1.0 - RATTANAC CHHORM");
    UpdateDisplay();
 
    CheckFridayClose();
