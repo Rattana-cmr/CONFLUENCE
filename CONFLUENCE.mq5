@@ -41,13 +41,13 @@ input bool     OverlapTokyoLondon     = false;    // Tokyo+London Overlap (08:00
 //===================== ENTRY FILTERS =====================//
 input group "========== ENTRY FILTERS =========="
 input bool     UseH4Filter            = false;    // H4 trend must align with H1
-input bool     UseRSIFilter           = true;     // RSI filter
+input bool     UseRSIFilter           = false;    // RSI filter
 input int      RSIPeriod              = 14;       // RSI period (H1)
 input int      RSIOverbought          = 65;       // Max RSI for BUY (not overbought)
 input int      RSIOversold            = 35;       // Min RSI for SELL (not oversold)
-input bool     UsePullbackFilter      = true;     // Price must be near 50 EMA
+input bool     UsePullbackFilter      = false;    // Price must be near 50 EMA
 input double   PullbackATRMultiplier  = 2.5;      // Max ATR distance from 50 EMA
-input bool     UseATRFilter           = true;     // Volatility gate
+input bool     UseATRFilter           = false;    // Volatility gate
 input double   ATRMinPoints           = 50.0;     // Min ATR (avoid dead markets)
 input double   ATRMaxPoints           = 500.0;    // Max ATR (avoid news spikes)
 
