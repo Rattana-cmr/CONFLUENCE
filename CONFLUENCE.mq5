@@ -11,77 +11,99 @@
 
 CTrade trade;
 
-//===================== RISK MANAGEMENT INPUTS =====================//
+//===================== RISK MANAGEMENT =====================//
 input group "========== RISK MANAGEMENT =========="
-input double   RiskPercent            = 0.5;      // Risk per trade (%) - 0 to disable
-input double   FixedLot               = 0.0;      // Fixed lot size (0 = use risk%)
+input double   RiskPercent            = 0.5;      // Risk per trade (%)
+input double   FixedLot               = 0.0;      // Fixed lot (0 = use risk%)
 input double   MaxDailyLossPercent    = 10.0;     // Max daily loss (%)
 input int      MaxTradesPerDay        = 10;       // Max trades per day
-input double   RewardRiskRatio        = 1.5;      // Risk/Reward ratio
+input double   RewardRiskRatio        = 1.5;      // Reward:Risk ratio
 
 //===================== TRADE FILTERS =====================//
 input group "========== TRADE FILTERS =========="
-input bool     UseTimeFilter          = false;    // Use trading hours (false = trade 24/7)
-input int      MaxSpreadPoints        = 50;       // Max spread allowed (0 = disable)
+input bool     UseTimeFilter          = false;    // Trading hours (false = 24/7)
+input int      MaxSpreadPoints        = 50;       // Max spread (0 = disable)
 input int      MinStopDistance        = 20;       // Min stop distance in points
 input int      MaxConsecutiveLosses   = 10;       // Stop after N consecutive losses
 
-//===================== INDIVIDUAL SESSION CONTROLS =====================//
+//===================== INDIVIDUAL SESSIONS =====================//
 input group "========== INDIVIDUAL SESSIONS (GMT TIME) =========="
-input bool     SessionSydney          = false;    // Sydney Session (22:00 - 07:00 GMT)
-input bool     SessionTokyo           = false;    // Tokyo Session (00:00 - 09:00 GMT)
-input bool     SessionLondon          = true;     // London Session (08:00 - 17:00 GMT) - RECOMMENDED
-input bool     SessionNewYork         = true;     // New York Session (13:00 - 22:00 GMT) - RECOMMENDED
+input bool     SessionSydney          = false;    // Sydney (22:00-07:00 GMT)
+input bool     SessionTokyo           = false;    // Tokyo (00:00-09:00 GMT)
+input bool     SessionLondon          = true;     // London (08:00-17:00 GMT)
+input bool     SessionNewYork         = true;     // New York (13:00-22:00 GMT)
 
-//===================== OVERLAP SESSIONS (HIGHEST VOLATILITY) =====================//
-input group "========== OVERLAP SESSIONS (HIGHEST VOLATILITY) =========="
-input bool     OverlapLondonNY        = true;     // London + NY Overlap (13:00 - 17:00 GMT) - BEST FOR XAUUSD
-input bool     OverlapTokyoLondon     = false;    // Tokyo + London Overlap (08:00 - 09:00 GMT)
+//===================== OVERLAP SESSIONS =====================//
+input group "========== OVERLAP SESSIONS =========="
+input bool     OverlapLondonNY        = true;     // London+NY Overlap (13:00-17:00 GMT)
+input bool     OverlapTokyoLondon     = false;    // Tokyo+London Overlap (08:00-09:00 GMT)
 
-//===================== STOP LOSS & TRAILING =====================//
+//===================== ENTRY FILTERS =====================//
+input group "========== ENTRY FILTERS =========="
+input bool     UseH4Filter            = true;     // H4 trend must align with H1
+input bool     UseRSIFilter           = true;     // RSI filter
+input int      RSIPeriod              = 14;       // RSI period (H1)
+input int      RSIOverbought          = 60;       // Max RSI for BUY (not overbought)
+input int      RSIOversold            = 40;       // Min RSI for SELL (not oversold)
+input bool     UsePullbackFilter      = true;     // Price must be near 50 EMA
+input double   PullbackATRMultiplier  = 1.5;      // Max ATR distance from 50 EMA
+input bool     UseATRFilter           = true;     // Volatility gate
+input double   ATRMinPoints           = 50.0;     // Min ATR (avoid dead markets)
+input double   ATRMaxPoints           = 500.0;    // Max ATR (avoid news spikes)
+
+//===================== STOP LOSS =====================//
 input group "========== STOP LOSS =========="
-input int      SLBufferPips           = 15;       // Stop loss buffer in pips behind swing
+input int      SLBufferPips           = 15;       // SL buffer behind swing (pips)
 input bool     UseTrailingStop        = false;    // Enable trailing stop
 input int      TrailingStartPips      = 30;       // Start trailing after N pips profit
-input int      TrailingStepPips       = 10;       // Trail stop by N pips
+input int      TrailingStepPips       = 10;       // Trail step in pips
 
 //===================== POSITION MANAGEMENT =====================//
 input group "========== POSITION MANAGEMENT =========="
-input bool     CloseOnFriday          = false;    // Close all positions on Friday
-input int      FridayCloseHour        = 20;       // Hour to close on Friday (20 = 8 PM)
-input bool     UseBreakeven           = true;     // Move SL to breakeven after profit
+input bool     CloseOnFriday          = false;    // Close positions on Friday
+input int      FridayCloseHour        = 20;       // Friday close hour (GMT)
+input bool     UseBreakeven           = true;     // Move SL to breakeven
 input int      BreakevenTriggerPips   = 20;       // Pips profit to trigger breakeven
+input bool     UsePartialClose        = true;     // Partial close at profit target
+input int      PartialClosePips       = 50;       // Pips profit to trigger partial close
+input int      PartialClosePercent    = 50;       // Percent of position to close
 
-//===================== SWING DETECTION - NEW =====================//
+//===================== SWING DETECTION =====================//
 input group "========== SWING DETECTION =========="
-input int      SwingLookbackBars      = 100;      // H1 bars to scan for swing (original used 50 M5 bars)
-input int      SwingConfirmBars       = 5;        // Bars each side to confirm swing (original = 4)
-input bool     ShowSwingLines         = true;     // Draw swing level on chart for visual check
+input int      SwingLookbackBars      = 100;      // H1 bars to scan
+input int      SwingConfirmBars       = 5;        // Bars each side to confirm
+input bool     ShowSwingLines         = true;     // Draw swing lines on chart
 
 //===================== DEBUG =====================//
 input group "========== DEBUG =========="
-input bool     ForceTrades            = true;     // Force trades (for testing)
-input bool     UsePythonRisk          = false;    // Enable AI risk control
+input bool     ForceTrades            = false;    // Force trades (testing only)
+input bool     UsePythonRisk          = false;    // AI risk control
 
 //===================== GLOBAL VARIABLES =====================//
 int ATRHandle;
 int FastEMAHandle;
 int SlowEMAHandle;
-datetime LastBarTime = 0;
-int TodayTradeCount = 0;
-int LastTradeDay = 0;
-double TodayLoss = 0;
+int H4FastEMAHandle;
+int H4SlowEMAHandle;
+int RSIHandle;
+datetime LastBarTime  = 0;
+int TodayTradeCount   = 0;
+int LastTradeDay      = 0;
+double TodayLoss      = 0;
 int consecutiveLosses = 0;
-int SwingLineCount = 0;   // for unique chart object names
+int SwingLineCount    = 0;
 
 //+------------------------------------------------------------------+
 //| INITIALIZATION                                                   |
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   ATRHandle = iATR(_Symbol, PERIOD_M15, 14);
-   FastEMAHandle = iMA(_Symbol, PERIOD_H1, 50, 0, MODE_EMA, PRICE_CLOSE);
-   SlowEMAHandle = iMA(_Symbol, PERIOD_H1, 200, 0, MODE_EMA, PRICE_CLOSE);
+   ATRHandle       = iATR(_Symbol, PERIOD_M15, 14);
+   FastEMAHandle   = iMA(_Symbol, PERIOD_H1, 50,  0, MODE_EMA, PRICE_CLOSE);
+   SlowEMAHandle   = iMA(_Symbol, PERIOD_H1, 200, 0, MODE_EMA, PRICE_CLOSE);
+   H4FastEMAHandle = iMA(_Symbol, PERIOD_H4, 50,  0, MODE_EMA, PRICE_CLOSE);
+   H4SlowEMAHandle = iMA(_Symbol, PERIOD_H4, 200, 0, MODE_EMA, PRICE_CLOSE);
+   RSIHandle       = iRSI(_Symbol, PERIOD_H1, RSIPeriod, PRICE_CLOSE);
 
    trade.SetExpertMagicNumber(888777);
    trade.SetDeviationInPoints(30);
@@ -89,13 +111,12 @@ int OnInit()
 
    Print("========================================");
    Print("CONFLUENCE V1.0 - Created By RATTANAC CHHORM");
-   Print("Active Sessions:");
-   if(SessionSydney) Print("  - Sydney (22:00-07:00 GMT)");
-   if(SessionTokyo) Print("  - Tokyo (00:00-09:00 GMT)");
-   if(SessionLondon) Print("  - London (08:00-17:00 GMT)");
-   if(SessionNewYork) Print("  - New York (13:00-22:00 GMT)");
-   if(OverlapLondonNY) Print("  - London+NY Overlap (13:00-17:00 GMT)");
-   if(OverlapTokyoLondon) Print("  - Tokyo+London Overlap (08:00-09:00 GMT)");
+   Print("H4 Filter:      ", UseH4Filter       ? "ON" : "OFF");
+   Print("RSI Filter:     ", UseRSIFilter       ? "ON" : "OFF");
+   Print("Pullback Filter:", UsePullbackFilter  ? "ON" : "OFF");
+   Print("ATR Filter:     ", UseATRFilter       ? "ON" : "OFF");
+   Print("Time Filter:    ", UseTimeFilter      ? "ON" : "OFF (24/7)");
+   Print("Partial Close:  ", UsePartialClose    ? "ON" : "OFF");
    Print("Swing: H1 lookback=", SwingLookbackBars, " confirm=+-", SwingConfirmBars, " bars");
    Print("========================================");
 
@@ -107,139 +128,86 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-   if(ATRHandle != INVALID_HANDLE) IndicatorRelease(ATRHandle);
-   if(FastEMAHandle != INVALID_HANDLE) IndicatorRelease(FastEMAHandle);
-   if(SlowEMAHandle != INVALID_HANDLE) IndicatorRelease(SlowEMAHandle);
+   if(ATRHandle       != INVALID_HANDLE) IndicatorRelease(ATRHandle);
+   if(FastEMAHandle   != INVALID_HANDLE) IndicatorRelease(FastEMAHandle);
+   if(SlowEMAHandle   != INVALID_HANDLE) IndicatorRelease(SlowEMAHandle);
+   if(H4FastEMAHandle != INVALID_HANDLE) IndicatorRelease(H4FastEMAHandle);
+   if(H4SlowEMAHandle != INVALID_HANDLE) IndicatorRelease(H4SlowEMAHandle);
+   if(RSIHandle       != INVALID_HANDLE) IndicatorRelease(RSIHandle);
    ObjectsDeleteAll(0, "SwingLine_");
    Comment("");
    Print("CONFLUENCE V1.0 SHUTDOWN");
 }
 
 //+------------------------------------------------------------------+
-//| CHECK IF IN SYDNEY SESSION                                       |
+//| SESSION CHECKS                                                   |
 //+------------------------------------------------------------------+
 bool InSydneySession()
 {
    if(!SessionSydney) return false;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   double currentTime = dt.hour + dt.min / 60.0;
-
-   // Sydney: 22:00 - 07:00 GMT (next day)
-   if(currentTime >= 22.00 || currentTime < 7.00)
-      return true;
-
-   return false;
+   double t = dt.hour + dt.min / 60.0;
+   return (t >= 22.00 || t < 7.00);
 }
 
-//+------------------------------------------------------------------+
-//| CHECK IF IN TOKYO SESSION                                        |
-//+------------------------------------------------------------------+
 bool InTokyoSession()
 {
    if(!SessionTokyo) return false;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   double currentTime = dt.hour + dt.min / 60.0;
-
-   // Tokyo: 00:00 - 09:00 GMT
-   if(currentTime >= 0.00 && currentTime < 9.00)
-      return true;
-
-   return false;
+   double t = dt.hour + dt.min / 60.0;
+   return (t >= 0.00 && t < 9.00);
 }
 
-//+------------------------------------------------------------------+
-//| CHECK IF IN LONDON SESSION                                       |
-//+------------------------------------------------------------------+
 bool InLondonSession()
 {
    if(!SessionLondon) return false;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   double currentTime = dt.hour + dt.min / 60.0;
-
-   // London: 08:00 - 17:00 GMT
-   if(currentTime >= 8.00 && currentTime < 17.00)
-      return true;
-
-   return false;
+   double t = dt.hour + dt.min / 60.0;
+   return (t >= 8.00 && t < 17.00);
 }
 
-//+------------------------------------------------------------------+
-//| CHECK IF IN NEW YORK SESSION                                     |
-//+------------------------------------------------------------------+
 bool InNewYorkSession()
 {
    if(!SessionNewYork) return false;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   double currentTime = dt.hour + dt.min / 60.0;
-
-   // New York: 13:00 - 22:00 GMT
-   if(currentTime >= 13.00 && currentTime < 22.00)
-      return true;
-
-   return false;
+   double t = dt.hour + dt.min / 60.0;
+   return (t >= 13.00 && t < 22.00);
 }
 
-//+------------------------------------------------------------------+
-//| CHECK IF IN LONDON+NY OVERLAP                                    |
-//+------------------------------------------------------------------+
 bool InLondonNYOverlap()
 {
    if(!OverlapLondonNY) return false;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   double currentTime = dt.hour + dt.min / 60.0;
-
-   // London + NY Overlap: 13:00 - 17:00 GMT
-   if(currentTime >= 13.00 && currentTime < 17.00)
-      return true;
-
-   return false;
+   double t = dt.hour + dt.min / 60.0;
+   return (t >= 13.00 && t < 17.00);
 }
 
-//+------------------------------------------------------------------+
-//| CHECK IF IN TOKYO+LONDON OVERLAP                                 |
-//+------------------------------------------------------------------+
 bool InTokyoLondonOverlap()
 {
    if(!OverlapTokyoLondon) return false;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   double currentTime = dt.hour + dt.min / 60.0;
-
-   // Tokyo + London Overlap: 08:00 - 09:00 GMT
-   if(currentTime >= 8.00 && currentTime < 9.00)
-      return true;
-
-   return false;
+   double t = dt.hour + dt.min / 60.0;
+   return (t >= 8.00 && t < 9.00);
 }
 
 //+------------------------------------------------------------------+
-//| CHECK TRADING TIME - INDIVIDUAL SESSIONS                         |
+//| CHECK TRADING TIME                                               |
 //+------------------------------------------------------------------+
 bool IsTradingTime()
 {
    if(!UseTimeFilter) return true;
-
-   // Check individual sessions
-   if(InSydneySession()) return true;
-   if(InTokyoSession()) return true;
-   if(InLondonSession()) return true;
-   if(InNewYorkSession()) return true;
-
-   // Check overlaps (these are subsets of sessions above)
-   if(InLondonNYOverlap()) return true;
+   if(InSydneySession())      return true;
+   if(InTokyoSession())       return true;
+   if(InLondonSession())      return true;
+   if(InNewYorkSession())     return true;
+   if(InLondonNYOverlap())    return true;
    if(InTokyoLondonOverlap()) return true;
-
    return false;
 }
 
@@ -249,10 +217,8 @@ bool IsTradingTime()
 bool IsSpreadOK()
 {
    if(MaxSpreadPoints <= 0) return true;
-
    double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) -
                     SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
-
    if(spread > MaxSpreadPoints)
    {
       Print("Spread too high: ", spread, " > ", MaxSpreadPoints);
@@ -262,15 +228,13 @@ bool IsSpreadOK()
 }
 
 //+------------------------------------------------------------------+
-//| CHECK FRIDAY CLOSE                                               |
+//| FRIDAY CLOSE                                                     |
 //+------------------------------------------------------------------+
 void CheckFridayClose()
 {
    if(!CloseOnFriday) return;
-
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-
    if(dt.day_of_week == 5 && dt.hour >= FridayCloseHour)
    {
       for(int i = PositionsTotal() - 1; i >= 0; i--)
@@ -282,7 +246,7 @@ void CheckFridayClose()
                PositionGetInteger(POSITION_MAGIC) == 888777)
             {
                trade.PositionClose(ticket);
-               Print("Friday close: Closed position ", ticket);
+               Print("Friday close: ticket ", ticket);
             }
          }
       }
@@ -290,17 +254,15 @@ void CheckFridayClose()
 }
 
 //+------------------------------------------------------------------+
-//| APPLY TRAILING STOP                                              |
+//| TRAILING STOP                                                    |
 //+------------------------------------------------------------------+
 void ApplyTrailingStop()
 {
    if(!UseTrailingStop) return;
-
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
       ulong ticket = PositionGetTicket(i);
       if(ticket == 0 || !PositionSelectByTicket(ticket)) continue;
-
       if(PositionGetString(POSITION_SYMBOL) != _Symbol) continue;
       if(PositionGetInteger(POSITION_MAGIC) != 888777) continue;
 
@@ -308,84 +270,122 @@ void ApplyTrailingStop()
       double currentPrice = type == POSITION_TYPE_BUY ?
                            SymbolInfoDouble(_Symbol, SYMBOL_BID) :
                            SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-      double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
-      double currentSL = PositionGetDouble(POSITION_SL);
-      double currentTP = PositionGetDouble(POSITION_TP);
-      double profitPips = 0;
+      double openPrice  = PositionGetDouble(POSITION_PRICE_OPEN);
+      double currentSL  = PositionGetDouble(POSITION_SL);
+      double currentTP  = PositionGetDouble(POSITION_TP);
 
-      if(type == POSITION_TYPE_BUY)
-         profitPips = (currentPrice - openPrice) / _Point / 10;
-      else
-         profitPips = (openPrice - currentPrice) / _Point / 10;
+      double profitPips = type == POSITION_TYPE_BUY ?
+                         (currentPrice - openPrice) / _Point / 10 :
+                         (openPrice - currentPrice) / _Point / 10;
 
       if(profitPips >= TrailingStartPips)
       {
-         double newSL = 0;
-         if(type == POSITION_TYPE_BUY)
-            newSL = currentPrice - TrailingStepPips * 10 * _Point;
-         else
-            newSL = currentPrice + TrailingStepPips * 10 * _Point;
-
+         double newSL = type == POSITION_TYPE_BUY ?
+                       currentPrice - TrailingStepPips * 10 * _Point :
+                       currentPrice + TrailingStepPips * 10 * _Point;
          newSL = NormalizeDouble(newSL, _Digits);
 
-         if((type == POSITION_TYPE_BUY && newSL > currentSL) ||
+         if((type == POSITION_TYPE_BUY  && newSL > currentSL) ||
             (type == POSITION_TYPE_SELL && newSL < currentSL))
          {
             if(trade.PositionModify(ticket, newSL, currentTP))
-               Print("Trailing stop updated: ", ticket, " new SL = ", newSL);
+               Print("Trailing stop updated: ticket ", ticket, " SL=", newSL);
          }
       }
    }
 }
 
 //+------------------------------------------------------------------+
-//| APPLY BREAKEVEN                                                  |
+//| BREAKEVEN                                                        |
 //+------------------------------------------------------------------+
 void ApplyBreakeven()
 {
    if(!UseBreakeven) return;
-
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
       ulong ticket = PositionGetTicket(i);
       if(ticket == 0 || !PositionSelectByTicket(ticket)) continue;
-
       if(PositionGetString(POSITION_SYMBOL) != _Symbol) continue;
       if(PositionGetInteger(POSITION_MAGIC) != 888777) continue;
 
       ENUM_POSITION_TYPE type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
-      double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
-      double currentSL = PositionGetDouble(POSITION_SL);
-      double currentTP = PositionGetDouble(POSITION_TP);
+      double openPrice    = PositionGetDouble(POSITION_PRICE_OPEN);
+      double currentSL    = PositionGetDouble(POSITION_SL);
+      double currentTP    = PositionGetDouble(POSITION_TP);
       double currentPrice = type == POSITION_TYPE_BUY ?
                            SymbolInfoDouble(_Symbol, SYMBOL_BID) :
                            SymbolInfoDouble(_Symbol, SYMBOL_ASK);
 
-      double profitPips = 0;
-      if(type == POSITION_TYPE_BUY)
-         profitPips = (currentPrice - openPrice) / _Point / 10;
-      else
-         profitPips = (openPrice - currentPrice) / _Point / 10;
+      double profitPips = type == POSITION_TYPE_BUY ?
+                         (currentPrice - openPrice) / _Point / 10 :
+                         (openPrice - currentPrice) / _Point / 10;
 
       if(profitPips >= BreakevenTriggerPips)
       {
-         double breakevenSL = type == POSITION_TYPE_BUY ?
-                              openPrice + 1 * _Point :
-                              openPrice - 1 * _Point;
-         breakevenSL = NormalizeDouble(breakevenSL, _Digits);
+         double beSL = type == POSITION_TYPE_BUY ?
+                      openPrice + 1 * _Point :
+                      openPrice - 1 * _Point;
+         beSL = NormalizeDouble(beSL, _Digits);
 
-         if((type == POSITION_TYPE_BUY && breakevenSL > currentSL) ||
-            (type == POSITION_TYPE_SELL && breakevenSL < currentSL))
+         if((type == POSITION_TYPE_BUY  && beSL > currentSL) ||
+            (type == POSITION_TYPE_SELL && beSL < currentSL))
          {
-            if(trade.PositionModify(ticket, breakevenSL, currentTP))
-               Print("Breakeven set for ticket ", ticket);
+            if(trade.PositionModify(ticket, beSL, currentTP))
+               Print("Breakeven set: ticket ", ticket);
          }
       }
    }
 }
 
 //+------------------------------------------------------------------+
-//| GET ATR POINTS                                                   |
+//| PARTIAL CLOSE                                                    |
+//| Uses GlobalVariable per ticket to ensure it fires only once.    |
+//+------------------------------------------------------------------+
+void ApplyPartialClose()
+{
+   if(!UsePartialClose) return;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0 || !PositionSelectByTicket(ticket)) continue;
+      if(PositionGetString(POSITION_SYMBOL) != _Symbol) continue;
+      if(PositionGetInteger(POSITION_MAGIC) != 888777) continue;
+
+      string pcKey = "CONF_PC_" + IntegerToString(ticket);
+      if(GlobalVariableCheck(pcKey)) continue;
+
+      ENUM_POSITION_TYPE type = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      double openPrice    = PositionGetDouble(POSITION_PRICE_OPEN);
+      double currentPrice = type == POSITION_TYPE_BUY ?
+                           SymbolInfoDouble(_Symbol, SYMBOL_BID) :
+                           SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+
+      double profitPips = type == POSITION_TYPE_BUY ?
+                         (currentPrice - openPrice) / _Point / 10 :
+                         (openPrice - currentPrice) / _Point / 10;
+
+      if(profitPips >= PartialClosePips)
+      {
+         double volume    = PositionGetDouble(POSITION_VOLUME);
+         double minLot    = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+         double lotStep   = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+         double closeVol  = NormalizeDouble(volume * PartialClosePercent / 100.0, 2);
+         closeVol         = MathMax(minLot, MathFloor(closeVol / lotStep) * lotStep);
+
+         if(closeVol >= minLot && closeVol < volume)
+         {
+            if(trade.PositionClosePartial(ticket, closeVol))
+            {
+               GlobalVariableSet(pcKey, 1);
+               Print("Partial close: ticket ", ticket, " | ", closeVol, " lots at +", DoubleToString(profitPips, 1), " pips");
+            }
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| ATR POINTS                                                       |
 //+------------------------------------------------------------------+
 double GetATRPoints()
 {
@@ -396,52 +396,110 @@ double GetATRPoints()
 }
 
 //+------------------------------------------------------------------+
-//| GET TREND DIRECTION                                              |
+//| H1 TREND DIRECTION                                               |
 //+------------------------------------------------------------------+
 int GetTrendDirection()
 {
    double fast[1], slow[1];
    if(CopyBuffer(FastEMAHandle, 0, 1, 1, fast) != 1) return 0;
    if(CopyBuffer(SlowEMAHandle, 0, 1, 1, slow) != 1) return 0;
-
    if(fast[0] > slow[0]) return 1;
    if(fast[0] < slow[0]) return -1;
    return 0;
 }
 
 //+------------------------------------------------------------------+
-//| GET CANDLE DIRECTION                                             |
+//| H4 TREND DIRECTION                                               |
+//+------------------------------------------------------------------+
+int GetH4TrendDirection()
+{
+   double fast[1], slow[1];
+   if(CopyBuffer(H4FastEMAHandle, 0, 1, 1, fast) != 1) return 0;
+   if(CopyBuffer(H4SlowEMAHandle, 0, 1, 1, slow) != 1) return 0;
+   if(fast[0] > slow[0]) return 1;
+   if(fast[0] < slow[0]) return -1;
+   return 0;
+}
+
+//+------------------------------------------------------------------+
+//| M15 CANDLE DIRECTION                                             |
 //+------------------------------------------------------------------+
 int GetCandleDirection()
 {
    MqlRates rates[2];
    if(CopyRates(_Symbol, PERIOD_M15, 0, 2, rates) != 2) return 0;
-
    if(rates[1].close > rates[1].open) return 1;
    if(rates[1].close < rates[1].open) return -1;
    return 0;
 }
 
 //+------------------------------------------------------------------+
-//| DRAW SWING LINE ON CHART                                         |
-//| Shows exactly where the swing level was detected.               |
-//| Blue dashed = BUY swing low, Red dashed = SELL swing high.      |
+//| RSI VALUE (for display)                                          |
+//+------------------------------------------------------------------+
+double GetRSIValue()
+{
+   double rsi[1];
+   if(CopyBuffer(RSIHandle, 0, 1, 1, rsi) == 1)
+      return rsi[0];
+   return 50;
+}
+
+//+------------------------------------------------------------------+
+//| RSI FILTER                                                       |
+//| BUY: RSI must be below overbought level (not chasing a top)     |
+//| SELL: RSI must be above oversold level (not chasing a bottom)   |
+//+------------------------------------------------------------------+
+bool IsRSIOK(bool isBuy)
+{
+   if(!UseRSIFilter) return true;
+   double rsi = GetRSIValue();
+   if(isBuy  && rsi >= RSIOverbought) { Print("RSI too high for BUY: ", DoubleToString(rsi, 1)); return false; }
+   if(!isBuy && rsi <= RSIOversold)   { Print("RSI too low for SELL: ", DoubleToString(rsi, 1)); return false; }
+   return true;
+}
+
+//+------------------------------------------------------------------+
+//| PULLBACK FILTER                                                  |
+//| Entry must be within PullbackATRMultiplier * ATR of the 50 EMA. |
+//| Prevents chasing entries far from structure.                    |
+//+------------------------------------------------------------------+
+bool IsPullbackValid(bool isBuy, double entry)
+{
+   if(!UsePullbackFilter) return true;
+   double fast[1];
+   if(CopyBuffer(FastEMAHandle, 0, 1, 1, fast) != 1) return true;
+   double maxDist = PullbackATRMultiplier * GetATRPoints() * _Point;
+   if(isBuy  && (entry - fast[0]) > maxDist) { Print("Price too far above EMA for BUY");  return false; }
+   if(!isBuy && (fast[0] - entry) > maxDist) { Print("Price too far below EMA for SELL"); return false; }
+   return true;
+}
+
+//+------------------------------------------------------------------+
+//| ATR VOLATILITY GATE                                              |
+//+------------------------------------------------------------------+
+bool IsVolatilityOK()
+{
+   if(!UseATRFilter) return true;
+   double atrPoints = GetATRPoints();
+   if(atrPoints < ATRMinPoints) { Print("ATR too low: ",  atrPoints, " < ", ATRMinPoints); return false; }
+   if(atrPoints > ATRMaxPoints) { Print("ATR too high: ", atrPoints, " > ", ATRMaxPoints); return false; }
+   return true;
+}
+
+//+------------------------------------------------------------------+
+//| DRAW SWING LINE                                                  |
 //+------------------------------------------------------------------+
 void DrawSwingLine(double price, bool isBuy, string source)
 {
    if(!ShowSwingLines) return;
-
    SwingLineCount++;
    string name = "SwingLine_" + IntegerToString(SwingLineCount);
-
-   // Keep only the last 6 lines to avoid clutter
    if(SwingLineCount > 6)
       ObjectDelete(0, "SwingLine_" + IntegerToString(SwingLineCount - 6));
-
    ObjectCreate(0, name, OBJ_HLINE, 0, 0, price);
-   ObjectSetInteger(0, name, OBJPROP_COLOR,   isBuy ? clrDodgerBlue : clrOrangeRed);
-   ObjectSetInteger(0, name, OBJPROP_WIDTH,   2);
-   ObjectSetInteger(0, name, OBJPROP_STYLE,   STYLE_DASH);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, isBuy ? clrDodgerBlue : clrOrangeRed);
+   ObjectSetInteger(0, name, OBJPROP_WIDTH, 2);
+   ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_DASH);
    ObjectSetString (0, name, OBJPROP_TOOLTIP,
                    (isBuy ? "SWING LOW: " : "SWING HIGH: ") +
                    DoubleToString(price, _Digits) + " [" + source + "]");
@@ -449,26 +507,11 @@ void DrawSwingLine(double price, bool isBuy, string source)
 }
 
 //+------------------------------------------------------------------+
-//| FIND MAJOR SWING HIGH/LOW — IMPROVED                             |
+//| FIND NEAREST SWING HIGH/LOW                                      |
 //|                                                                  |
-//| WHAT CHANGED vs original:                                        |
-//|                                                                  |
-//| Original: scanned only M5 bars (50 bars = ~4 hours), used ±4    |
-//| bar confirmation window. This caught tiny noise wicks and micro  |
-//| structure, not the real swing highs/lows you see on the chart.  |
-//|                                                                  |
-//| New:                                                             |
-//|  1. Scans H1 first (SwingLookbackBars, default 100 = ~4 months) |
-//|     Each H1 bar = 1 hour, so ±5 bars = 10-hour confirmation.    |
-//|     This finds the major structure levels that matter for SL.   |
-//|  2. Falls back to M15 (150 bars = ~37 hours) if H1 finds nothing|
-//|  3. Falls back to ATR only as last resort — never silently       |
-//|     like the original which used lowestLow/highestHigh as a     |
-//|     fallback (that's just the extreme candle, not a real swing). |
-//|  4. Draws a dashed horizontal line on the chart so you can      |
-//|     visually verify every SL placement in real time.            |
-//|  5. Safety check: rejects a swing that is on the wrong side     |
-//|     of entry (original had no such guard).                      |
+//| Returns the most RECENT valid swing (not the absolute extreme).  |
+//| Nearest swing gives a tighter, more logical SL placement and     |
+//| keeps lot sizes and R:R realistic.                               |
 //+------------------------------------------------------------------+
 void FindNearestSwing(bool isBuy, double &swingPrice)
 {
@@ -481,8 +524,6 @@ void FindNearestSwing(bool isBuy, double &swingPrice)
 
    if(CopyRates(_Symbol, PERIOD_H1, 0, h1Need, h1) >= SwingLookbackBars)
    {
-      int bestIndex = -1;
-
       if(isBuy)
       {
          for(int i = SwingConfirmBars; i < SwingLookbackBars - SwingConfirmBars; i++)
@@ -494,15 +535,12 @@ void FindNearestSwing(bool isBuy, double &swingPrice)
                if(h1[j].low <= h1[i].low) { isSwingLow = false; break; }
             }
             if(isSwingLow)
-               if(bestIndex == -1 || h1[i].low < h1[bestIndex].low)
-                  bestIndex = i;
-         }
-         if(bestIndex > 0)
-         {
-            swingPrice = h1[bestIndex].low;
-            DrawSwingLine(swingPrice, true, "H1");
-            Print("Swing LOW  [H1 bar -", bestIndex, "]: ", DoubleToString(swingPrice, _Digits));
-            return;
+            {
+               swingPrice = h1[i].low;
+               DrawSwingLine(swingPrice, true, "H1");
+               Print("Swing LOW  [H1 bar -", i, "]: ", DoubleToString(swingPrice, _Digits));
+               return;
+            }
          }
       }
       else
@@ -516,15 +554,12 @@ void FindNearestSwing(bool isBuy, double &swingPrice)
                if(h1[j].high >= h1[i].high) { isSwingHigh = false; break; }
             }
             if(isSwingHigh)
-               if(bestIndex == -1 || h1[i].high > h1[bestIndex].high)
-                  bestIndex = i;
-         }
-         if(bestIndex > 0)
-         {
-            swingPrice = h1[bestIndex].high;
-            DrawSwingLine(swingPrice, false, "H1");
-            Print("Swing HIGH [H1 bar -", bestIndex, "]: ", DoubleToString(swingPrice, _Digits));
-            return;
+            {
+               swingPrice = h1[i].high;
+               DrawSwingLine(swingPrice, false, "H1");
+               Print("Swing HIGH [H1 bar -", i, "]: ", DoubleToString(swingPrice, _Digits));
+               return;
+            }
          }
       }
    }
@@ -538,8 +573,6 @@ void FindNearestSwing(bool isBuy, double &swingPrice)
 
    if(CopyRates(_Symbol, PERIOD_M15, 0, m15Lookback + m15Confirm + 5, m15) >= m15Lookback)
    {
-      int bestIndex = -1;
-
       if(isBuy)
       {
          for(int i = m15Confirm; i < m15Lookback - m15Confirm; i++)
@@ -551,15 +584,12 @@ void FindNearestSwing(bool isBuy, double &swingPrice)
                if(m15[j].low <= m15[i].low) { isSwingLow = false; break; }
             }
             if(isSwingLow)
-               if(bestIndex == -1 || m15[i].low < m15[bestIndex].low)
-                  bestIndex = i;
-         }
-         if(bestIndex > 0)
-         {
-            swingPrice = m15[bestIndex].low;
-            DrawSwingLine(swingPrice, true, "M15");
-            Print("Swing LOW  [M15 bar -", bestIndex, "]: ", DoubleToString(swingPrice, _Digits));
-            return;
+            {
+               swingPrice = m15[i].low;
+               DrawSwingLine(swingPrice, true, "M15");
+               Print("Swing LOW  [M15 bar -", i, "]: ", DoubleToString(swingPrice, _Digits));
+               return;
+            }
          }
       }
       else
@@ -573,20 +603,17 @@ void FindNearestSwing(bool isBuy, double &swingPrice)
                if(m15[j].high >= m15[i].high) { isSwingHigh = false; break; }
             }
             if(isSwingHigh)
-               if(bestIndex == -1 || m15[i].high > m15[bestIndex].high)
-                  bestIndex = i;
-         }
-         if(bestIndex > 0)
-         {
-            swingPrice = m15[bestIndex].high;
-            DrawSwingLine(swingPrice, false, "M15");
-            Print("Swing HIGH [M15 bar -", bestIndex, "]: ", DoubleToString(swingPrice, _Digits));
-            return;
+            {
+               swingPrice = m15[i].high;
+               DrawSwingLine(swingPrice, false, "M15");
+               Print("Swing HIGH [M15 bar -", i, "]: ", DoubleToString(swingPrice, _Digits));
+               return;
+            }
          }
       }
    }
 
-   //--- PASS 3: nothing found — ATR used in CalculateStopLoss -------
+   //--- PASS 3: ATR fallback ----------------------------------------
    Print("No swing found on H1 or M15 — will fall back to ATR");
    swingPrice = 0;
 }
@@ -604,18 +631,14 @@ double CalculateStopLoss(bool isBuy, double entry)
    if(swingPrice > 0)
    {
       double sl = isBuy ? swingPrice - buffer : swingPrice + buffer;
-
-      // Safety guard: swing must be on the correct side of entry
       if(isBuy  && sl >= entry) { Print("Swing SL above entry — using ATR fallback"); swingPrice = 0; }
       if(!isBuy && sl <= entry) { Print("Swing SL below entry — using ATR fallback"); swingPrice = 0; }
-
       if(swingPrice > 0) return sl;
    }
 
-   double atrPoints = GetATRPoints();
-   double atrValue = atrPoints * _Point;
+   double atrValue  = GetATRPoints() * _Point;
    double fallbackSL = isBuy ? entry - atrValue * 1.5 : entry + atrValue * 1.5;
-   Print("Swing not found - using ATR fallback");
+   Print("Swing not found — using ATR fallback");
    return fallbackSL;
 }
 
@@ -624,13 +647,8 @@ double CalculateStopLoss(bool isBuy, double entry)
 //+------------------------------------------------------------------+
 double CalculateTakeProfit(bool isBuy, double entry, double sl)
 {
-   double riskDistance = MathAbs(entry - sl);
-   double tpDistance = riskDistance * RewardRiskRatio;
-
-   if(isBuy)
-      return entry + tpDistance;
-   else
-      return entry - tpDistance;
+   double risk = MathAbs(entry - sl);
+   return isBuy ? entry + risk * RewardRiskRatio : entry - risk * RewardRiskRatio;
 }
 
 //+------------------------------------------------------------------+
@@ -638,76 +656,64 @@ double CalculateTakeProfit(bool isBuy, double entry, double sl)
 //+------------------------------------------------------------------+
 double CalculateLotSize(double slPoints)
 {
+   double minLot  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double maxLot  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
+   double lotStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+
    if(FixedLot > 0)
    {
-      double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
-      double maxLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
-      double lotStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
-
-      double lot = FixedLot;
-      lot = MathMax(minLot, MathMin(maxLot, lot));
-      lot = MathFloor(lot / lotStep) * lotStep;
-      lot = NormalizeDouble(lot, 2);
-      return lot;
+      double lot = MathMax(minLot, MathMin(maxLot, FixedLot));
+      return NormalizeDouble(MathFloor(lot / lotStep) * lotStep, 2);
    }
 
    double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
-   double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
-   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   double tickSize  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+   double balance   = AccountInfoDouble(ACCOUNT_BALANCE);
    double riskMoney = balance * RiskPercent / 100.0;
 
-   if(tickValue <= 0 || tickSize <= 0 || riskMoney <= 0)
-      return 0.01;
+   if(tickValue <= 0 || tickSize <= 0 || riskMoney <= 0) return minLot;
 
    double lossPerLot = (slPoints * _Point / tickSize) * tickValue;
-   if(lossPerLot <= 0) return 0.01;
+   if(lossPerLot <= 0) return minLot;
 
    double volume = riskMoney / lossPerLot;
-   double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
-   double maxLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
-   double lotStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
-
    volume = MathMax(minLot, MathMin(maxLot, volume));
    volume = MathFloor(volume / lotStep) * lotStep;
    volume = NormalizeDouble(volume, 2);
 
    if(volume < minLot) volume = minLot;
-   if(volume > 0.10) volume = 0.10;
+   if(volume > 0.10)   volume = 0.10;
 
    return volume;
 }
 
 //+------------------------------------------------------------------+
-//| UPDATE DAILY COUNTERS                                            |
+//| DAILY COUNTERS                                                   |
 //+------------------------------------------------------------------+
 void UpdateDailyCounters()
 {
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
-   int currentDay = dt.day;
-
-   if(currentDay != LastTradeDay)
+   if(dt.day != LastTradeDay)
    {
-      TodayTradeCount = 0;
-      TodayLoss = 0;
+      TodayTradeCount   = 0;
+      TodayLoss         = 0;
       consecutiveLosses = 0;
-      LastTradeDay = currentDay;
+      LastTradeDay      = dt.day;
       Print("Daily counters reset");
    }
 }
 
 //+------------------------------------------------------------------+
-//| CHECK DAILY LOSS LIMIT                                           |
+//| DAILY LOSS LIMIT                                                 |
 //+------------------------------------------------------------------+
 bool IsDailyLossLimitHit()
 {
    if(MaxDailyLossPercent <= 0) return false;
-
-   datetime todayStart;
    MqlDateTime dt;
    TimeToStruct(TimeCurrent(), dt);
    dt.hour = 0; dt.min = 0; dt.sec = 0;
-   todayStart = StructToTime(dt);
+   datetime todayStart = StructToTime(dt);
 
    if(HistorySelect(todayStart, TimeCurrent()))
    {
@@ -722,13 +728,11 @@ bool IsDailyLossLimitHit()
          }
       }
    }
-
-   double maxLoss = AccountInfoDouble(ACCOUNT_BALANCE) * MaxDailyLossPercent / 100;
-   return TodayLoss >= maxLoss;
+   return TodayLoss >= AccountInfoDouble(ACCOUNT_BALANCE) * MaxDailyLossPercent / 100;
 }
 
 //+------------------------------------------------------------------+
-//| CHECK STOP DISTANCE                                              |
+//| STOP DISTANCE CHECK                                              |
 //+------------------------------------------------------------------+
 bool IsStopDistanceOK(double slPoints)
 {
@@ -737,16 +741,15 @@ bool IsStopDistanceOK(double slPoints)
 }
 
 //+------------------------------------------------------------------+
-//| CHECK IF CAN TRADE                                               |
+//| CAN TRADE                                                        |
 //+------------------------------------------------------------------+
 bool CanTrade()
 {
    UpdateDailyCounters();
-
-   if(IsDailyLossLimitHit()) return false;
-   if(TodayTradeCount >= MaxTradesPerDay) return false;
+   if(IsDailyLossLimitHit())                    return false;
+   if(TodayTradeCount >= MaxTradesPerDay)        return false;
    if(consecutiveLosses >= MaxConsecutiveLosses) return false;
-   if(!IsSpreadOK()) return false;
+   if(!IsSpreadOK())                             return false;
 
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
@@ -755,9 +758,7 @@ bool CanTrade()
       {
          if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
             PositionGetInteger(POSITION_MAGIC) == 888777)
-         {
             return false;
-         }
       }
    }
    return true;
@@ -782,116 +783,87 @@ void PlaceTrade()
       forceCounter++;
       bool isBuy = (forceCounter % 2 == 1);
 
-      double entry = isBuy ? tick.ask : tick.bid;
-      double sl = CalculateStopLoss(isBuy, entry);
-      double tp = CalculateTakeProfit(isBuy, entry, sl);
-
+      double entry    = isBuy ? tick.ask : tick.bid;
+      double sl       = CalculateStopLoss(isBuy, entry);
+      double tp       = CalculateTakeProfit(isBuy, entry, sl);
       sl = NormalizeDouble(sl, _Digits);
       tp = NormalizeDouble(tp, _Digits);
 
       double slPoints = MathAbs(entry - sl) / _Point;
-      double volume = CalculateLotSize(slPoints);
-
-      if(volume <= 0)
-      {
-         Print("Invalid volume calculation");
-         return;
-      }
+      double volume   = CalculateLotSize(slPoints);
+      if(volume <= 0) { Print("Invalid volume"); return; }
 
       int minStop = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
-      if(slPoints < minStop)
-      {
-         Print("Stop too close: ", slPoints, " < ", minStop);
-         return;
-      }
+      if(slPoints < minStop) { Print("Stop too close: ", slPoints, " < ", minStop); return; }
 
-      bool result = false;
-      if(isBuy)
-         result = trade.Buy(volume, _Symbol, entry, sl, tp, "CONFLUENCE BUY");
-      else
-         result = trade.Sell(volume, _Symbol, entry, sl, tp, "CONFLUENCE SELL");
+      bool result = isBuy ?
+                   trade.Buy(volume, _Symbol, entry, sl, tp, "CONFLUENCE BUY") :
+                   trade.Sell(volume, _Symbol, entry, sl, tp, "CONFLUENCE SELL");
 
       if(result)
       {
          TodayTradeCount++;
          Print("========================================");
-         Print("TRADE: ", isBuy ? "BUY" : "SELL");
+         Print("FORCE TRADE: ", isBuy ? "BUY" : "SELL");
          Print("   Entry: ", DoubleToString(entry, _Digits));
-         Print("   SL: ", DoubleToString(sl, _Digits), " (", DoubleToString(slPoints, 0), " points)");
+         Print("   SL: ", DoubleToString(sl, _Digits), " (", DoubleToString(slPoints, 0), " pts)");
          Print("   TP: ", DoubleToString(tp, _Digits));
          Print("   Volume: ", DoubleToString(volume, 2));
          Print("========================================");
       }
       else
-      {
          Print("Trade failed: ", trade.ResultRetcodeDescription());
-      }
       return;
    }
 
    // NORMAL TRADING MODE
-   int trend = GetTrendDirection();
-   int candle = GetCandleDirection();
+   int h1Trend = GetTrendDirection();
+   int h4Trend = GetH4TrendDirection();
+   int candle  = GetCandleDirection();
 
-   if(trend == 0)
-   {
-      Print("No clear trend - skipping");
-      return;
-   }
+   if(h1Trend == 0)                                        { Print("H1: No clear trend"); return; }
+   if(UseH4Filter && h4Trend != 0 && h4Trend != h1Trend)  { Print("H4 trend conflicts with H1 — skipping"); return; }
 
-   bool isBuy = (trend == 1 && candle == 1);
-   bool isSell = (trend == -1 && candle == -1);
-
-   if(!isBuy && !isSell)
-   {
-      Print("Candle doesn't match trend - skipping");
-      return;
-   }
+   bool isBuy  = (h1Trend == 1  && candle == 1);
+   bool isSell = (h1Trend == -1 && candle == -1);
+   if(!isBuy && !isSell)                                   { Print("Candle doesn't match trend — skipping"); return; }
 
    double entry = isBuy ? tick.ask : tick.bid;
+
+   if(!IsVolatilityOK())          return;
+   if(!IsRSIOK(isBuy))            return;
+   if(!IsPullbackValid(isBuy, entry)) return;
+
    double sl = CalculateStopLoss(isBuy, entry);
    double tp = CalculateTakeProfit(isBuy, entry, sl);
-
    sl = NormalizeDouble(sl, _Digits);
    tp = NormalizeDouble(tp, _Digits);
 
    double slPoints = MathAbs(entry - sl) / _Point;
-
-   if(!IsStopDistanceOK(slPoints))
-   {
-      Print("Stop too close: ", slPoints, " < ", MinStopDistance);
-      return;
-   }
+   if(!IsStopDistanceOK(slPoints)) { Print("Stop too close: ", slPoints, " < ", MinStopDistance); return; }
 
    double volume = CalculateLotSize(slPoints);
+   if(volume <= 0) { Print("Invalid volume"); return; }
 
-   if(volume <= 0)
-   {
-      Print("Invalid volume calculation");
-      return;
-   }
-
-   bool result = false;
-   if(isBuy)
-      result = trade.Buy(volume, _Symbol, entry, sl, tp, "CONFLUENCE BUY");
-   else
-      result = trade.Sell(volume, _Symbol, entry, sl, tp, "CONFLUENCE SELL");
+   bool result = isBuy ?
+                trade.Buy(volume, _Symbol, entry, sl, tp, "CONFLUENCE BUY") :
+                trade.Sell(volume, _Symbol, entry, sl, tp, "CONFLUENCE SELL");
 
    if(result)
    {
       TodayTradeCount++;
       Print("========================================");
       Print("TRADE: ", isBuy ? "BUY" : "SELL");
-      Print("   Entry: ", DoubleToString(entry, _Digits));
-      Print("   SL: ", DoubleToString(sl, _Digits), " (", DoubleToString(slPoints, 0), " points)");
-      Print("   TP: ", DoubleToString(tp, _Digits));
+      Print("   Entry:  ", DoubleToString(entry, _Digits));
+      Print("   SL:     ", DoubleToString(sl, _Digits), " (", DoubleToString(slPoints, 0), " pts)");
+      Print("   TP:     ", DoubleToString(tp, _Digits));
       Print("   Volume: ", DoubleToString(volume, 2));
+      Print("   H4:     ", (h4Trend == 1 ? "BULL" : (h4Trend == -1 ? "BEAR" : "FLAT")));
+      Print("   RSI:    ", DoubleToString(GetRSIValue(), 1));
       Print("========================================");
    }
    else
-   {
       Print("Trade failed: ", trade.ResultRetcodeDescription());
-   }
 }
 
 //+------------------------------------------------------------------+
@@ -899,36 +871,73 @@ void PlaceTrade()
 //+------------------------------------------------------------------+
 void UpdateDisplay()
 {
-   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
-   double equity = AccountInfoDouble(ACCOUNT_EQUITY);
-   double profit = equity - balance;
-   int trend = GetTrendDirection();
-   int candle = GetCandleDirection();
-   double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) -
-                    SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
+   double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
+   double equity   = AccountInfoDouble(ACCOUNT_EQUITY);
+   double profit   = equity - balance;
+   int    h1Trend  = GetTrendDirection();
+   int    h4Trend  = GetH4TrendDirection();
+   int    candle   = GetCandleDirection();
+   double rsi      = GetRSIValue();
+   double spread   = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) -
+                      SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
+
+   string h1Str  = (h1Trend == 1 ? "BULLISH" : (h1Trend == -1 ? "BEARISH" : "FLAT"));
+   string h4Str  = (h4Trend == 1 ? "BULLISH" : (h4Trend == -1 ? "BEARISH" : "FLAT"));
+   string cdlStr = (candle  == 1 ? "BULLISH" : (candle  == -1 ? "BEARISH" : "DOJI"));
 
    string info = "";
-   info = info + "╔═══════════════════════════════════════════════════════════════════╗\n";
-   info = info + "║         CONFLUENCE V1.0 - Created By - RATTANAC CHHORM           ║\n";
-   info = info + "╠═══════════════════════════════════════════════════════════════════╣\n";
-   info = info + "║ Balance: $" + DoubleToString(balance, 2) + "\n";
-   info = info + "║ Profit:  $" + DoubleToString(profit, 2) + "\n";
-   info = info + "╠═══════════════════════════════════════════════════════════════════╣\n";
-   info = info + "║ Trend: " + (trend == 1 ? "BULLISH ▲" : (trend == -1 ? "BEARISH ▼" : "FLAT")) + "\n";
-   info = info + "║ Candle: " + (candle == 1 ? "BULLISH" : (candle == -1 ? "BEARISH" : "DOJI")) + "\n";
-   info = info + "║ Spread: " + DoubleToString(spread, 0) + " points\n";
-   info = info + "║ Trades Today: " + IntegerToString(TodayTradeCount) + "/" + IntegerToString(MaxTradesPerDay) + "\n";
-   info = info + "╠═══════════════════════════════════════════════════════════════════╣\n";
-   info = info + "║ Time Filter: " + (UseTimeFilter ? "ON (sessions active)" : "OFF (trading 24/7)") + "\n";
-   info = info + "║ SL: " + IntegerToString(SLBufferPips) + " pips behind swing  [H1 lookback=" + IntegerToString(SwingLookbackBars) + "]\n";
-   info = info + "║ Force Trades: " + (ForceTrades ? "ON" : "OFF") + "\n";
-   info = info + "╚═══════════════════════════════════════════════════════════════════╝";
+   info += "╔═══════════════════════════════════════════════════════════════════╗\n";
+   info += "║       CONFLUENCE V1.0 - Created By - RATTANAC CHHORM             ║\n";
+   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
+   info += "║ Balance: $" + DoubleToString(balance, 2) + "\n";
+   info += "║ Profit:  $" + DoubleToString(profit, 2) + "\n";
+   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
+   info += "║ H4 Trend:  " + h4Str  + "\n";
+   info += "║ H1 Trend:  " + h1Str  + "\n";
+   info += "║ M15 Candle:" + cdlStr + "\n";
+   info += "║ RSI (H1):  " + DoubleToString(rsi, 1) + "\n";
+   info += "║ Spread:    " + DoubleToString(spread, 0) + " points\n";
+   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
+   info += "║ FILTERS:                                                          ║\n";
+   info += "║  H4 Align:    " + (UseH4Filter       ? "ON" : "OFF") + "\n";
+   info += "║  RSI:         " + (UseRSIFilter       ? "ON" : "OFF") + "\n";
+   info += "║  Pullback:    " + (UsePullbackFilter  ? "ON" : "OFF") + "\n";
+   info += "║  ATR Gate:    " + (UseATRFilter       ? "ON" : "OFF") + "\n";
+   info += "║  Time Filter: " + (UseTimeFilter      ? "ON" : "OFF (24/7)") + "\n";
+   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
+   info += "║ Trades Today: " + IntegerToString(TodayTradeCount) + "/" + IntegerToString(MaxTradesPerDay) + "\n";
+   info += "║ Consec Losses:" + IntegerToString(consecutiveLosses) + "/" + IntegerToString(MaxConsecutiveLosses) + "\n";
+   info += "║ Force Trades: " + (ForceTrades ? "ON" : "OFF") + "\n";
+   info += "╚═══════════════════════════════════════════════════════════════════╝";
 
    Comment(info);
 }
 
 //+------------------------------------------------------------------+
-//| MAIN TICK FUNCTION                                               |
+//| TRADE TRANSACTION — tracks consecutive losses                    |
+//+------------------------------------------------------------------+
+void OnTradeTransaction(const MqlTradeTransaction &trans,
+                        const MqlTradeRequest     &request,
+                        const MqlTradeResult      &result)
+{
+   if(trans.type != TRADE_TRANSACTION_DEAL_ADD) return;
+   if(!HistoryDealSelect(trans.deal)) return;
+   if(HistoryDealGetInteger(trans.deal, DEAL_MAGIC) != 888777) return;
+   if(HistoryDealGetString(trans.deal, DEAL_SYMBOL) != _Symbol) return;
+   if((ENUM_DEAL_ENTRY)HistoryDealGetInteger(trans.deal, DEAL_ENTRY) != DEAL_ENTRY_OUT) return;
+
+   double dealProfit = HistoryDealGetDouble(trans.deal, DEAL_PROFIT);
+   if(dealProfit < 0)
+      consecutiveLosses++;
+   else
+      consecutiveLosses = 0;
+
+   Print("Trade closed | Profit: ", DoubleToString(dealProfit, 2),
+         " | Consecutive losses: ", consecutiveLosses);
+}
+
+//+------------------------------------------------------------------+
+//| MAIN TICK                                                        |
 //+------------------------------------------------------------------+
 void OnTick()
 {
@@ -938,6 +947,7 @@ void OnTick()
    CheckFridayClose();
    ApplyBreakeven();
    ApplyTrailingStop();
+   ApplyPartialClose();
 
    if(ForceTrades)
    {
@@ -951,7 +961,7 @@ void OnTick()
       return;
    }
 
-   if(!CanTrade()) return;
+   if(!CanTrade())      return;
    if(!IsTradingTime()) return;
 
    datetime barTime[1];
