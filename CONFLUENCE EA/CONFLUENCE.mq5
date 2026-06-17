@@ -427,6 +427,7 @@ int GetH4TrendDirection()
 int GetCandleDirection()
 {
    MqlRates rates[2];
+   ArraySetAsSeries(rates, true);
    if(CopyRates(_Symbol, PERIOD_M1, 0, 2, rates) != 2) return 0;
    if(rates[1].close > rates[1].open) return 1;
    if(rates[1].close < rates[1].open) return -1;
