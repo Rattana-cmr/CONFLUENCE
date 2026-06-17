@@ -43,10 +43,10 @@ input group "========== ENTRY FILTERS =========="
 input bool     UseH4Filter            = true;     // H4 trend must align with H1
 input bool     UseRSIFilter           = true;     // RSI filter
 input int      RSIPeriod              = 14;       // RSI period (H1)
-input int      RSIOverbought          = 60;       // Max RSI for BUY (not overbought)
-input int      RSIOversold            = 40;       // Min RSI for SELL (not oversold)
+input int      RSIOverbought          = 65;       // Max RSI for BUY (not overbought)
+input int      RSIOversold            = 35;       // Min RSI for SELL (not oversold)
 input bool     UsePullbackFilter      = true;     // Price must be near 50 EMA
-input double   PullbackATRMultiplier  = 1.5;      // Max ATR distance from 50 EMA
+input double   PullbackATRMultiplier  = 2.5;      // Max ATR distance from 50 EMA
 input bool     UseATRFilter           = true;     // Volatility gate
 input double   ATRMinPoints           = 50.0;     // Min ATR (avoid dead markets)
 input double   ATRMaxPoints           = 500.0;    // Max ATR (avoid news spikes)
@@ -427,7 +427,7 @@ int GetH4TrendDirection()
 int GetCandleDirection()
 {
    MqlRates rates[2];
-   if(CopyRates(_Symbol, PERIOD_M15, 0, 2, rates) != 2) return 0;
+   if(CopyRates(_Symbol, PERIOD_M5, 0, 2, rates) != 2) return 0;
    if(rates[1].close > rates[1].open) return 1;
    if(rates[1].close < rates[1].open) return -1;
    return 0;
@@ -965,7 +965,7 @@ void OnTick()
    if(!IsTradingTime()) return;
 
    datetime barTime[1];
-   if(CopyTime(_Symbol, PERIOD_M15, 0, 1, barTime) != 1) return;
+   if(CopyTime(_Symbol, PERIOD_M5, 0, 1, barTime) != 1) return;
 
    if(barTime[0] != LastBarTime)
    {
