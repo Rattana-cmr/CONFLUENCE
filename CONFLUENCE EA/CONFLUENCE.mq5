@@ -17,6 +17,7 @@ input double   RiskPercent            = 0.5;      // Risk per trade (%)
 input double   FixedLot               = 0.0;      // Fixed lot (0 = use risk%)
 input double   MaxDailyLossPercent    = 10.0;     // Max daily loss (%)
 input int      MaxTradesPerDay        = 10;       // Max trades per day
+input int      MaxOpenPositions       = 3;        // Max concurrent open positions
 input double   RewardRiskRatio        = 1.5;      // Reward:Risk ratio
 
 //===================== TRADE FILTERS =====================//
@@ -751,6 +752,7 @@ bool CanTrade()
    if(consecutiveLosses >= MaxConsecutiveLosses) return false;
    if(!IsSpreadOK())                             return false;
 
+   int openCount = 0;
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
       ulong ticket = PositionGetTicket(i);
@@ -758,10 +760,10 @@ bool CanTrade()
       {
          if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
             PositionGetInteger(POSITION_MAGIC) == 888777)
-            return false;
+            openCount++;
       }
    }
-   return true;
+   return openCount < MaxOpenPositions;
 }
 
 //+------------------------------------------------------------------+
@@ -842,6 +844,26 @@ void PlaceTrade()
    double slPoints = MathAbs(entry - sl) / _Point;
    if(!IsStopDistanceOK(slPoints)) { Print("Stop too close: ", slPoints, " < ", MinStopDistance); return; }
 
+   // Safety: warn if minimum lot would risk more than 5% of balance (account too small for this symbol)
+   {
+      double minLot_    = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+      double tickVal_   = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+      double tickSz_    = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+      double balance_   = AccountInfoDouble(ACCOUNT_BALANCE);
+      if(tickVal_ > 0 && tickSz_ > 0 && balance_ > 0)
+      {
+         double lossPerLot_ = (slPoints * _Point / tickSz_) * tickVal_;
+         double minLotLoss_ = minLot_ * lossPerLot_;
+         if(minLotLoss_ > balance_ * 0.05)
+         {
+            Print("WARNING: Min lot would risk $", DoubleToString(minLotLoss_, 2),
+                  " (", DoubleToString(minLotLoss_ / balance_ * 100.0, 1),
+                  "% of balance). Need larger account. Skipping.");
+            return;
+         }
+      }
+   }
+
    double volume = CalculateLotSize(slPoints);
    if(volume <= 0) { Print("Invalid volume"); return; }
 
@@ -905,6 +927,15 @@ void UpdateDisplay()
    info += "║  ATR Gate:    " + (UseATRFilter       ? "ON" : "OFF") + "\n";
    info += "║  Time Filter: " + (UseTimeFilter      ? "ON" : "OFF (24/7)") + "\n";
    info += "╠═══════════════════════════════════════════════════════════════════╣\n";
+   int openPos = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong tk = PositionGetTicket(i);
+      if(tk > 0 && PositionSelectByTicket(tk))
+         if(PositionGetString(POSITION_SYMBOL) == _Symbol && PositionGetInteger(POSITION_MAGIC) == 888777)
+            openPos++;
+   }
+   info += "║ Open Positions:" + IntegerToString(openPos) + "/" + IntegerToString(MaxOpenPositions) + "\n";
    info += "║ Trades Today: " + IntegerToString(TodayTradeCount) + "/" + IntegerToString(MaxTradesPerDay) + "\n";
    info += "║ Consec Losses:" + IntegerToString(consecutiveLosses) + "/" + IntegerToString(MaxConsecutiveLosses) + "\n";
    info += "║ Force Trades: " + (ForceTrades ? "ON" : "OFF") + "\n";
