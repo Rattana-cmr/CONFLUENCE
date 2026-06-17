@@ -22,7 +22,7 @@ input double   RewardRiskRatio        = 1.5;      // Reward:Risk ratio
 //===================== TRADE FILTERS =====================//
 input group "========== TRADE FILTERS =========="
 input bool     UseTimeFilter          = false;    // Trading hours (false = 24/7)
-input int      MaxSpreadPoints        = 50;       // Max spread (0 = disable)
+input int      MaxSpreadPoints        = 0;        // Max spread (0 = disable)
 input int      MinStopDistance        = 20;       // Min stop distance in points
 input int      MaxConsecutiveLosses   = 10;       // Stop after N consecutive losses
 
@@ -427,7 +427,7 @@ int GetH4TrendDirection()
 int GetCandleDirection()
 {
    MqlRates rates[2];
-   if(CopyRates(_Symbol, PERIOD_M5, 0, 2, rates) != 2) return 0;
+   if(CopyRates(_Symbol, PERIOD_M1, 0, 2, rates) != 2) return 0;
    if(rates[1].close > rates[1].open) return 1;
    if(rates[1].close < rates[1].open) return -1;
    return 0;
@@ -965,7 +965,7 @@ void OnTick()
    if(!IsTradingTime()) return;
 
    datetime barTime[1];
-   if(CopyTime(_Symbol, PERIOD_M5, 0, 1, barTime) != 1) return;
+   if(CopyTime(_Symbol, PERIOD_M1, 0, 1, barTime) != 1) return;
 
    if(barTime[0] != LastBarTime)
    {
