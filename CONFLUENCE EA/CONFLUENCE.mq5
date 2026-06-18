@@ -55,6 +55,7 @@ input double   ATRMaxPoints           = 500.0;    // Max ATR (avoid news spikes)
 //===================== STOP LOSS =====================//
 input group "========== STOP LOSS =========="
 input int      SLBufferPips           = 15;       // SL buffer behind swing (pips)
+input int      MaxSLPips              = 200;      // Cap SL distance from entry (pips, 0=disable)
 input bool     UseTrailingStop        = false;    // Enable trailing stop
 input int      TrailingStartPips      = 30;       // Start trailing after N pips profit
 input int      TrailingStepPips       = 10;       // Trail step in pips
@@ -634,7 +635,20 @@ double CalculateStopLoss(bool isBuy, double entry)
       double sl = isBuy ? swingPrice - buffer : swingPrice + buffer;
       if(isBuy  && sl >= entry) { Print("Swing SL above entry — using ATR fallback"); swingPrice = 0; }
       if(!isBuy && sl <= entry) { Print("Swing SL below entry — using ATR fallback"); swingPrice = 0; }
-      if(swingPrice > 0) return sl;
+      if(swingPrice > 0)
+      {
+         if(MaxSLPips > 0)
+         {
+            double maxDist = MaxSLPips * 10 * _Point;
+            double slDist  = MathAbs(entry - sl);
+            if(slDist > maxDist)
+            {
+               Print("Swing SL capped: ", DoubleToString(slDist / _Point / 10, 0), " → ", MaxSLPips, " pips");
+               sl = isBuy ? entry - maxDist : entry + maxDist;
+            }
+         }
+         return sl;
+      }
    }
 
    double atrValue  = GetATRPoints() * _Point;
