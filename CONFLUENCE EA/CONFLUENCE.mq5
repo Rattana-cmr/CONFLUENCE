@@ -148,7 +148,7 @@ bool InSydneySession()
 {
    if(!SessionSydney) return false;
    MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
+   TimeToStruct(TimeGMT(), dt);
    double t = dt.hour + dt.min / 60.0;
    return (t >= 22.00 || t < 7.00);
 }
@@ -157,7 +157,7 @@ bool InTokyoSession()
 {
    if(!SessionTokyo) return false;
    MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
+   TimeToStruct(TimeGMT(), dt);
    double t = dt.hour + dt.min / 60.0;
    return (t >= 0.00 && t < 9.00);
 }
@@ -166,7 +166,7 @@ bool InLondonSession()
 {
    if(!SessionLondon) return false;
    MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
+   TimeToStruct(TimeGMT(), dt);
    double t = dt.hour + dt.min / 60.0;
    return (t >= 8.00 && t < 17.00);
 }
@@ -175,7 +175,7 @@ bool InNewYorkSession()
 {
    if(!SessionNewYork) return false;
    MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
+   TimeToStruct(TimeGMT(), dt);
    double t = dt.hour + dt.min / 60.0;
    return (t >= 13.00 && t < 22.00);
 }
@@ -184,7 +184,7 @@ bool InLondonNYOverlap()
 {
    if(!OverlapLondonNY) return false;
    MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
+   TimeToStruct(TimeGMT(), dt);
    double t = dt.hour + dt.min / 60.0;
    return (t >= 13.00 && t < 17.00);
 }
@@ -193,7 +193,7 @@ bool InTokyoLondonOverlap()
 {
    if(!OverlapTokyoLondon) return false;
    MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
+   TimeToStruct(TimeGMT(), dt);
    double t = dt.hour + dt.min / 60.0;
    return (t >= 8.00 && t < 9.00);
 }
