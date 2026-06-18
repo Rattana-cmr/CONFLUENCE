@@ -13,8 +13,9 @@ CTrade trade;
 
 //===================== RISK MANAGEMENT =====================//
 input group "========== RISK MANAGEMENT =========="
-input double   RiskPercent            = 0.25;     // Risk per trade (%)
+input double   RiskPercent            = 0.5;      // Risk per trade (%)
 input double   FixedLot               = 0.0;      // Fixed lot (0 = use risk%)
+input double   MaxLotSize             = 0.05;     // Hard cap on lot size
 input double   MaxDailyLossPercent    = 10.0;     // Max daily loss (%)
 input int      MaxTradesPerDay        = 10;       // Max trades per day
 input int      MaxOpenPositions       = 3;        // Max concurrent open positions
@@ -706,8 +707,8 @@ double CalculateLotSize(double slPoints)
    volume = MathFloor(volume / lotStep) * lotStep;
    volume = NormalizeDouble(volume, 2);
 
-   if(volume < minLot) volume = minLot;
-   if(volume > 0.10)   volume = 0.10;
+   if(volume < minLot)    volume = minLot;
+   if(MaxLotSize > 0 && volume > MaxLotSize) volume = MaxLotSize;
 
    return volume;
 }
