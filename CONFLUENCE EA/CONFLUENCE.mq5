@@ -18,7 +18,7 @@ input double   FixedLot               = 0.0;      // Fixed lot (0 = use risk%)
 input double   MaxDailyLossPercent    = 10.0;     // Max daily loss (%)
 input int      MaxTradesPerDay        = 10;       // Max trades per day
 input int      MaxOpenPositions       = 3;        // Max concurrent open positions
-input double   RewardRiskRatio        = 1.5;      // Reward:Risk ratio
+input double   RewardRiskRatio        = 2.0;      // Reward:Risk ratio
 
 //===================== TRADE FILTERS =====================//
 input group "========== TRADE FILTERS =========="
@@ -651,8 +651,18 @@ double CalculateStopLoss(bool isBuy, double entry)
       }
    }
 
-   double atrValue  = GetATRPoints() * _Point;
+   double atrValue   = GetATRPoints() * _Point;
    double fallbackSL = isBuy ? entry - atrValue * 1.5 : entry + atrValue * 1.5;
+   if(MaxSLPips > 0)
+   {
+      double maxDist_ = MaxSLPips * 10 * _Point;
+      double slDist_  = MathAbs(entry - fallbackSL);
+      if(slDist_ > maxDist_)
+      {
+         Print("ATR SL capped: ", DoubleToString(slDist_ / _Point / 10, 0), " → ", MaxSLPips, " pips");
+         fallbackSL = isBuy ? entry - maxDist_ : entry + maxDist_;
+      }
+   }
    Print("Swing not found — using ATR fallback");
    return fallbackSL;
 }
