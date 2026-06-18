@@ -18,7 +18,7 @@ input double   FixedLot               = 0.0;      // Fixed lot (0 = use risk%)
 input double   MaxDailyLossPercent    = 10.0;     // Max daily loss (%)
 input int      MaxTradesPerDay        = 10;       // Max trades per day
 input int      MaxOpenPositions       = 3;        // Max concurrent open positions
-input double   RewardRiskRatio        = 2.0;      // Reward:Risk ratio
+input double   RewardRiskRatio        = 1.5;      // Reward:Risk ratio
 
 //===================== TRADE FILTERS =====================//
 input group "========== TRADE FILTERS =========="
@@ -64,9 +64,9 @@ input int      TrailingStepPips       = 10;       // Trail step in pips
 input group "========== POSITION MANAGEMENT =========="
 input bool     CloseOnFriday          = false;    // Close positions on Friday
 input int      FridayCloseHour        = 20;       // Friday close hour (GMT)
-input bool     UseBreakeven           = true;     // Move SL to breakeven
+input bool     UseBreakeven           = false;    // Move SL to breakeven
 input int      BreakevenTriggerPips   = 20;       // Pips profit to trigger breakeven
-input bool     UsePartialClose        = true;     // Partial close at profit target
+input bool     UsePartialClose        = false;    // Partial close at profit target
 input int      PartialClosePips       = 50;       // Pips profit to trigger partial close
 input int      PartialClosePercent    = 50;       // Percent of position to close
 
