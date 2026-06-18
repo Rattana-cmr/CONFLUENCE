@@ -22,7 +22,7 @@ input double   RewardRiskRatio        = 1.5;      // Reward:Risk ratio
 
 //===================== TRADE FILTERS =====================//
 input group "========== TRADE FILTERS =========="
-input bool     UseTimeFilter          = true;     // Trading hours (false = 24/7)
+input bool     UseTimeFilter          = false;    // Trading hours (false = 24/7)
 input int      MaxSpreadPoints        = 0;        // Max spread (0 = disable)
 input int      MinStopDistance        = 20;       // Min stop distance in points
 input int      MaxConsecutiveLosses   = 10;       // Stop after N consecutive losses
