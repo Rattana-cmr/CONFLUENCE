@@ -13,7 +13,7 @@ CTrade trade;
 
 //===================== RISK MANAGEMENT =====================//
 input group "========== RISK MANAGEMENT =========="
-input double   RiskPercent            = 0.5;      // Risk per trade (%)
+input double   RiskPercent            = 0.25;     // Risk per trade (%)
 input double   FixedLot               = 0.0;      // Fixed lot (0 = use risk%)
 input double   MaxDailyLossPercent    = 10.0;     // Max daily loss (%)
 input int      MaxTradesPerDay        = 10;       // Max trades per day
