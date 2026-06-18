@@ -41,7 +41,7 @@ input bool     OverlapTokyoLondon     = false;    // Tokyo+London Overlap (08:00
 
 //===================== ENTRY FILTERS =====================//
 input group "========== ENTRY FILTERS =========="
-input bool     UseH4Filter            = false;    // H4 trend must align with H1
+input bool     UseH4Filter            = true;     // H4 trend must align with H1
 input bool     UseRSIFilter           = false;    // RSI filter
 input int      RSIPeriod              = 14;       // RSI period (H1)
 input int      RSIOverbought          = 65;       // Max RSI for BUY (not overbought)
