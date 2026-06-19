@@ -1,13 +1,15 @@
 //+------------------------------------------------------------------+
 //|                                         CONFLUENCE V1.0          |
 //|                    INDIVIDUAL SESSION CONTROLS                   |
-//|                           Created By - RATTANAC CHHORM           |
+//|                           Created By - Stephen REEN              |
 //+------------------------------------------------------------------+
-#property copyright "RATTANAC CHHORM"
+#property copyright "Stephen REEN"
 #property version   "1.0"
 #property strict
 
 #include <Trade/Trade.mqh>
+
+#define DPFX "CONF_"
 
 CTrade trade;
 
@@ -96,6 +98,13 @@ double TodayLoss      = 0;
 int consecutiveLosses = 0;
 int SwingLineCount    = 0;
 
+int  PanelX         = 10;
+int  PanelY         = 25;
+bool PanelCollapsed = false;
+bool PanelDragging  = false;
+int  DragOffsetX    = 0;
+int  DragOffsetY    = 0;
+
 //+------------------------------------------------------------------+
 //| INITIALIZATION                                                   |
 //+------------------------------------------------------------------+
@@ -111,9 +120,10 @@ int OnInit()
    trade.SetExpertMagicNumber(888777);
    trade.SetDeviationInPoints(30);
    trade.SetTypeFillingBySymbol(_Symbol);
+   ChartSetInteger(0, CHART_EVENT_MOUSE_MOVE, true);
 
    Print("========================================");
-   Print("CONFLUENCE V1.0 - Created By RATTANAC CHHORM");
+   Print("CONFLUENCE V1.0 - Created By Stephen REEN");
    Print("H4 Filter:      ", UseH4Filter       ? "ON" : "OFF");
    Print("RSI Filter:     ", UseRSIFilter       ? "ON" : "OFF");
    Print("Pullback Filter:", UsePullbackFilter  ? "ON" : "OFF");
@@ -138,6 +148,7 @@ void OnDeinit(const int reason)
    if(H4SlowEMAHandle != INVALID_HANDLE) IndicatorRelease(H4SlowEMAHandle);
    if(RSIHandle       != INVALID_HANDLE) IndicatorRelease(RSIHandle);
    ObjectsDeleteAll(0, "SwingLine_");
+   ObjectsDeleteAll(0, DPFX);
    Comment("");
    Print("CONFLUENCE V1.0 SHUTDOWN");
 }
@@ -772,9 +783,23 @@ bool IsStopDistanceOK(double slPoints)
 bool CanTrade()
 {
    UpdateDailyCounters();
-   if(IsDailyLossLimitHit())                    return false;
-   if(TodayTradeCount >= MaxTradesPerDay)        return false;
-   if(consecutiveLosses >= MaxConsecutiveLosses) return false;
+   if(IsDailyLossLimitHit())
+   {
+      Print("BLOCKED: Daily loss limit | TodayLoss=$", DoubleToString(TodayLoss, 2),
+            " >= $", DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE) * MaxDailyLossPercent / 100, 2),
+            " (", DoubleToString(MaxDailyLossPercent, 1), "% of balance)");
+      return false;
+   }
+   if(TodayTradeCount >= MaxTradesPerDay)
+   {
+      Print("BLOCKED: Max trades/day reached | ", TodayTradeCount, "/", MaxTradesPerDay);
+      return false;
+   }
+   if(consecutiveLosses >= MaxConsecutiveLosses)
+   {
+      Print("BLOCKED: Max consecutive losses reached | ", consecutiveLosses, "/", MaxConsecutiveLosses);
+      return false;
+   }
    if(!IsSpreadOK())                             return false;
 
    int openCount = 0;
@@ -788,7 +813,12 @@ bool CanTrade()
             openCount++;
       }
    }
-   return openCount < MaxOpenPositions;
+   if(openCount >= MaxOpenPositions)
+   {
+      Print("BLOCKED: Max open positions | ", openCount, "/", MaxOpenPositions);
+      return false;
+   }
+   return true;
 }
 
 //+------------------------------------------------------------------+
@@ -880,12 +910,9 @@ void PlaceTrade()
          double lossPerLot_ = (slPoints * _Point / tickSz_) * tickVal_;
          double minLotLoss_ = minLot_ * lossPerLot_;
          if(minLotLoss_ > balance_ * 0.05)
-         {
-            Print("WARNING: Min lot would risk $", DoubleToString(minLotLoss_, 2),
+            Print("WARNING: Min lot risks $", DoubleToString(minLotLoss_, 2),
                   " (", DoubleToString(minLotLoss_ / balance_ * 100.0, 1),
-                  "% of balance). Need larger account. Skipping.");
-            return;
-         }
+                  "% of balance).");
       }
    }
 
@@ -914,59 +941,228 @@ void PlaceTrade()
 }
 
 //+------------------------------------------------------------------+
+//| DASHBOARD CONSTANTS                                              |
+//+------------------------------------------------------------------+
+#define DW     274
+
+#define C_BG_DARK  ((color)C'12,14,22')
+#define C_BG_HDR   ((color)C'18,28,58')
+#define C_BG_ALT   ((color)C'17,20,32')
+#define C_ACCENT   ((color)C'218,162,0')
+#define C_SECTION  ((color)C'95,115,160')
+#define C_LABEL    ((color)C'150,163,185')
+#define C_TXT      ((color)C'225,230,242')
+#define C_GREEN    ((color)C'45,198,72')
+#define C_RED      ((color)C'238,62,62')
+#define C_YELLOW   ((color)C'238,208,38')
+#define C_DIVIDER  ((color)C'32,42,62')
+
+//+------------------------------------------------------------------+
+string TimeFrameStr()
+{
+   switch(Period())
+   {
+      case PERIOD_M1:  return "M1";
+      case PERIOD_M5:  return "M5";
+      case PERIOD_M15: return "M15";
+      case PERIOD_H1:  return "H1";
+      case PERIOD_H4:  return "H4";
+      case PERIOD_D1:  return "D1";
+      default:         return EnumToString(Period());
+   }
+}
+
+void DashRect(string n, int x, int y, int w, int h, color bg)
+{
+   if(ObjectFind(0, n) < 0)
+   {
+      ObjectCreate(0, n, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, n, OBJPROP_CORNER,      CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, n, OBJPROP_SELECTABLE,  false);
+      ObjectSetInteger(0, n, OBJPROP_HIDDEN,      true);
+      ObjectSetInteger(0, n, OBJPROP_BACK,        false);
+      ObjectSetInteger(0, n, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   }
+   ObjectSetInteger(0, n, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, n, OBJPROP_YDISTANCE, y);
+   ObjectSetInteger(0, n, OBJPROP_XSIZE,     w);
+   ObjectSetInteger(0, n, OBJPROP_YSIZE,     h);
+   ObjectSetInteger(0, n, OBJPROP_BGCOLOR,   bg);
+   ObjectSetInteger(0, n, OBJPROP_COLOR,     bg);
+}
+
+void DashText(string n, int x, int y, string txt, color clr, int sz = 8, bool bold = false)
+{
+   if(ObjectFind(0, n) < 0)
+   {
+      ObjectCreate(0, n, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, n, OBJPROP_CORNER,     CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, n, OBJPROP_ANCHOR,     ANCHOR_LEFT_UPPER);
+      ObjectSetInteger(0, n, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, n, OBJPROP_HIDDEN,     true);
+      ObjectSetInteger(0, n, OBJPROP_BACK,       false);
+   }
+   ObjectSetInteger(0, n, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, n, OBJPROP_YDISTANCE, y);
+   ObjectSetString (0, n, OBJPROP_TEXT,      txt);
+   ObjectSetInteger(0, n, OBJPROP_COLOR,     clr);
+   ObjectSetInteger(0, n, OBJPROP_FONTSIZE,  sz);
+   ObjectSetString (0, n, OBJPROP_FONT,      bold ? "Arial Bold" : "Arial");
+}
+
+void DashRow(string key, int y, string lbl, string val, color valClr)
+{
+   DashText(DPFX+"L_"+key, PanelX+12,  y, lbl, C_LABEL, 8, false);
+   DashText(DPFX+"V_"+key, PanelX+162, y, val, valClr,  8, true);
+}
+
+void DashSect(string key, int y, string title)
+{
+   DashText(DPFX+"H_"+key, PanelX+12, y, title, C_SECTION, 7, true);
+}
+
+void DashVisible(string n, bool visible)
+{
+   if(ObjectFind(0, n) >= 0)
+      ObjectSetInteger(0, n, OBJPROP_TIMEFRAMES,
+                       visible ? OBJ_ALL_PERIODS : OBJ_NO_PERIODS);
+}
+
+void DashButton(string n, int x, int y, string txt)
+{
+   if(ObjectFind(0, n) < 0)
+   {
+      ObjectCreate(0, n, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, n, OBJPROP_CORNER,     CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, n, OBJPROP_ANCHOR,     ANCHOR_LEFT_UPPER);
+      ObjectSetInteger(0, n, OBJPROP_SELECTABLE, true);
+      ObjectSetInteger(0, n, OBJPROP_HIDDEN,     false);
+      ObjectSetInteger(0, n, OBJPROP_BACK,       false);
+   }
+   ObjectSetInteger(0, n, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, n, OBJPROP_YDISTANCE, y);
+   ObjectSetString (0, n, OBJPROP_TEXT,      txt);
+   ObjectSetInteger(0, n, OBJPROP_COLOR,     C_TXT);
+   ObjectSetInteger(0, n, OBJPROP_FONTSIZE,  9);
+   ObjectSetString (0, n, OBJPROP_FONT,      "Arial Bold");
+}
+
+//+------------------------------------------------------------------+
 //| UPDATE DISPLAY                                                   |
 //+------------------------------------------------------------------+
 void UpdateDisplay()
 {
-   double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
-   double equity   = AccountInfoDouble(ACCOUNT_EQUITY);
-   double profit   = equity - balance;
-   int    h1Trend  = GetTrendDirection();
-   int    h4Trend  = GetH4TrendDirection();
-   int    candle   = GetCandleDirection();
-   double rsi      = GetRSIValue();
-   double spread   = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) -
-                      SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
+   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   double equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+   double pnl     = equity - balance;
+   int    h1Trend = GetTrendDirection();
+   int    h4Trend = GetH4TrendDirection();
+   int    candle  = GetCandleDirection();
+   double rsi     = GetRSIValue();
+   double atr     = GetATRPoints();
+   double spread  = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) -
+                     SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
 
-   string h1Str  = (h1Trend == 1 ? "BULLISH" : (h1Trend == -1 ? "BEARISH" : "FLAT"));
-   string h4Str  = (h4Trend == 1 ? "BULLISH" : (h4Trend == -1 ? "BEARISH" : "FLAT"));
-   string cdlStr = (candle  == 1 ? "BULLISH" : (candle  == -1 ? "BEARISH" : "DOJI"));
-
-   string info = "";
-   info += "╔═══════════════════════════════════════════════════════════════════╗\n";
-   info += "║       CONFLUENCE V1.0 - Created By - RATTANAC CHHORM             ║\n";
-   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
-   info += "║ Balance: $" + DoubleToString(balance, 2) + "\n";
-   info += "║ Profit:  $" + DoubleToString(profit, 2) + "\n";
-   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
-   info += "║ H4 Trend:  " + h4Str  + "\n";
-   info += "║ H1 Trend:  " + h1Str  + "\n";
-   info += "║ M15 Candle:" + cdlStr + "\n";
-   info += "║ RSI (H1):  " + DoubleToString(rsi, 1) + "\n";
-   info += "║ Spread:    " + DoubleToString(spread, 0) + " points\n";
-   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
-   info += "║ FILTERS:                                                          ║\n";
-   info += "║  H4 Align:    " + (UseH4Filter       ? "ON" : "OFF") + "\n";
-   info += "║  RSI:         " + (UseRSIFilter       ? "ON" : "OFF") + "\n";
-   info += "║  Pullback:    " + (UsePullbackFilter  ? "ON" : "OFF") + "\n";
-   info += "║  ATR Gate:    " + (UseATRFilter       ? "ON" : "OFF") + "\n";
-   info += "║  Time Filter: " + (UseTimeFilter      ? "ON" : "OFF (24/7)") + "\n";
-   info += "╠═══════════════════════════════════════════════════════════════════╣\n";
    int openPos = 0;
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
       ulong tk = PositionGetTicket(i);
       if(tk > 0 && PositionSelectByTicket(tk))
-         if(PositionGetString(POSITION_SYMBOL) == _Symbol && PositionGetInteger(POSITION_MAGIC) == 888777)
+         if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
+            PositionGetInteger(POSITION_MAGIC) == 888777)
             openPos++;
    }
-   info += "║ Open Positions:" + IntegerToString(openPos) + "/" + IntegerToString(MaxOpenPositions) + "\n";
-   info += "║ Trades Today: " + IntegerToString(TodayTradeCount) + "/" + IntegerToString(MaxTradesPerDay) + "\n";
-   info += "║ Consec Losses:" + IntegerToString(consecutiveLosses) + "/" + IntegerToString(MaxConsecutiveLosses) + "\n";
-   info += "║ Force Trades: " + (ForceTrades ? "ON" : "OFF") + "\n";
-   info += "╚═══════════════════════════════════════════════════════════════════╝";
 
-   Comment(info);
+   string h4Str  = (h4Trend ==  1 ? "▲ BULLISH" : (h4Trend == -1 ? "▼ BEARISH" : "─ FLAT"));
+   string h1Str  = (h1Trend ==  1 ? "▲ BULLISH" : (h1Trend == -1 ? "▼ BEARISH" : "─ FLAT"));
+   string cdlStr = (candle  ==  1 ? "▲ BULLISH" : (candle  == -1 ? "▼ BEARISH" : "○  DOJI"));
+   color  h4Col  = (h4Trend ==  1 ? C_GREEN : (h4Trend == -1 ? C_RED : C_LABEL));
+   color  h1Col  = (h1Trend ==  1 ? C_GREEN : (h1Trend == -1 ? C_RED : C_LABEL));
+   color  cdlCol = (candle  ==  1 ? C_GREEN : (candle  == -1 ? C_RED : C_LABEL));
+   color  pnlCol = (pnl > 0 ? C_GREEN : (pnl < 0 ? C_RED : C_TXT));
+   color  rsiCol = (rsi >= 70 ? C_RED : (rsi <= 30 ? C_GREEN : C_TXT));
+   color  lssCol = (consecutiveLosses >= (int)(MaxConsecutiveLosses * 0.7) ? C_RED :
+                   (consecutiveLosses >= (int)(MaxConsecutiveLosses * 0.4) ? C_YELLOW : C_TXT));
+
+   bool   exp    = !PanelCollapsed;
+   int    fullH  = 406;
+   int    hdrH   = 55;
+   int    panelH = exp ? fullH : hdrH;
+
+   // ── Backgrounds ───────────────────────────────────────
+   DashRect(DPFX+"FR",    PanelX-1, PanelY-1, DW+2, panelH+2, C_ACCENT);
+   DashRect(DPFX+"MAIN",  PanelX,   PanelY,   DW,   panelH,   C_BG_DARK);
+   DashRect(DPFX+"HDR",   PanelX,   PanelY,   DW,   52,       C_BG_HDR);
+   DashRect(DPFX+"GLINE", PanelX,   PanelY+52,DW,   3,        C_ACCENT);
+   DashRect(DPFX+"S_ACC", PanelX,   PanelY+55,DW,   74,       C_BG_DARK);
+   DashRect(DPFX+"S_MKT", PanelX,   PanelY+132,DW,  118,      C_BG_ALT);
+   DashRect(DPFX+"S_TRD", PanelX,   PanelY+253,DW,  76,       C_BG_DARK);
+   DashRect(DPFX+"S_RSK", PanelX,   PanelY+332,DW,  74,       C_BG_ALT);
+
+   // ── Header (always visible) ───────────────────────────
+   DashText(DPFX+"TITLE", PanelX+12, PanelY+9,
+            "Confluence  V1.0", C_ACCENT, 10, true);
+   DashText(DPFX+"SUB",   PanelX+12, PanelY+31,
+            "Stephen REEN     " + _Symbol + "," + TimeFrameStr(),
+            C_LABEL, 8, false);
+   DashButton(DPFX+"BTN", PanelX+DW-28, PanelY+12,
+              exp ? "[ - ]" : "[ + ]");
+
+   // ── Account ───────────────────────────────────────────
+   DashSect("ACC", PanelY+60, "ACCOUNT");
+   DashRow("BAL", PanelY+75,  "Balance",
+           "$" + DoubleToString(balance, 2), C_TXT);
+   DashRow("EQU", PanelY+93,  "Equity",
+           "$" + DoubleToString(equity, 2),  C_TXT);
+   DashRow("PNL", PanelY+111, "Open P&L",
+           (pnl >= 0 ? "+" : "-") + "$" + DoubleToString(MathAbs(pnl), 2), pnlCol);
+
+   // ── Market Analysis ───────────────────────────────────
+   DashSect("MKT", PanelY+137, "MARKET ANALYSIS");
+   DashRow("H4T", PanelY+152, "H4 Trend",  h4Str, h4Col);
+   DashRow("H1T", PanelY+170, "H1 Trend",  h1Str, h1Col);
+   DashRow("CDL", PanelY+188, "M1 Candle", cdlStr, cdlCol);
+   DashRow("RSI", PanelY+206, "RSI (H1)",
+           DoubleToString(rsi, 1), rsiCol);
+   DashRow("ATR", PanelY+224, "ATR",
+           DoubleToString(atr, 0) + " pts", C_TXT);
+   DashRow("SPR", PanelY+242, "Spread",
+           DoubleToString(spread, 0) + " pts", C_TXT);
+
+   // ── Trade Status ──────────────────────────────────────
+   DashSect("TRD", PanelY+258, "TRADE STATUS");
+   DashRow("OPN", PanelY+273, "Open Pos",
+           IntegerToString(openPos) + " / " + IntegerToString(MaxOpenPositions),
+           openPos > 0 ? C_YELLOW : C_TXT);
+   DashRow("TOD", PanelY+291, "Today",
+           IntegerToString(TodayTradeCount) + " / " + IntegerToString(MaxTradesPerDay), C_TXT);
+   DashRow("CSL", PanelY+309, "Loss Streak",
+           IntegerToString(consecutiveLosses) + " / " + IntegerToString(MaxConsecutiveLosses),
+           lssCol);
+
+   // ── Risk Parameters ───────────────────────────────────
+   DashSect("RSK", PanelY+337, "RISK PARAMETERS");
+   DashRow("LOT", PanelY+352, "Max Lot",
+           DoubleToString(MaxLotSize, 2), C_TXT);
+   DashRow("RRR", PanelY+370, "R:R Ratio",
+           "1 : " + DoubleToString(RewardRiskRatio, 1), C_TXT);
+   DashRow("MSL", PanelY+388, "Max SL",
+           IntegerToString(MaxSLPips) + " pips", C_TXT);
+
+   // ── Show / hide sections ──────────────────────────────
+   string sections[] = {
+      "S_ACC","S_MKT","S_TRD","S_RSK",
+      "H_ACC","H_MKT","H_TRD","H_RSK",
+      "L_BAL","V_BAL","L_EQU","V_EQU","L_PNL","V_PNL",
+      "L_H4T","V_H4T","L_H1T","V_H1T","L_CDL","V_CDL",
+      "L_RSI","V_RSI","L_ATR","V_ATR","L_SPR","V_SPR",
+      "L_OPN","V_OPN","L_TOD","V_TOD","L_CSL","V_CSL",
+      "L_LOT","V_LOT","L_RRR","V_RRR","L_MSL","V_MSL"
+   };
+   for(int i = 0; i < ArraySize(sections); i++)
+      DashVisible(DPFX+sections[i], exp);
+
+   ChartRedraw(0);
 }
 
 //+------------------------------------------------------------------+
@@ -990,6 +1186,71 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 
    Print("Trade closed | Profit: ", DoubleToString(dealProfit, 2),
          " | Consecutive losses: ", consecutiveLosses);
+
+   // Batch reset: when all positions close, restart the cycle
+   int remaining = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong tk = PositionGetTicket(i);
+      if(tk > 0 && PositionSelectByTicket(tk))
+         if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
+            PositionGetInteger(POSITION_MAGIC) == 888777)
+            remaining++;
+   }
+   if(remaining == 0)
+   {
+      TodayTradeCount = 0;
+      Print("All positions closed — batch reset 0/", MaxOpenPositions);
+   }
+}
+
+//+------------------------------------------------------------------+
+//| CHART EVENTS — toggle collapse + drag                           |
+//+------------------------------------------------------------------+
+void OnChartEvent(const int id, const long &lparam,
+                  const double &dparam, const string &sparam)
+{
+   // ── Toggle collapse ──────────────────────────────────
+   if(id == CHARTEVENT_OBJECT_CLICK && sparam == DPFX+"BTN")
+   {
+      PanelCollapsed = !PanelCollapsed;
+      UpdateDisplay();
+      return;
+   }
+
+   // ── Drag (mouse move) ────────────────────────────────
+   if(id == CHARTEVENT_MOUSE_MOVE)
+   {
+      int  mx   = (int)lparam;
+      int  my   = (int)dparam;
+      bool lBtn = ((int)StringToInteger(sparam) & 1) != 0;
+
+      if(lBtn)
+      {
+         if(!PanelDragging)
+         {
+            if(mx >= PanelX && mx <= PanelX + DW &&
+               my >= PanelY && my <= PanelY + 55)
+            {
+               PanelDragging = true;
+               DragOffsetX   = mx - PanelX;
+               DragOffsetY   = my - PanelY;
+            }
+         }
+         if(PanelDragging)
+         {
+            PanelX = mx - DragOffsetX;
+            PanelY = my - DragOffsetY;
+            PanelX = MathMax(0, PanelX);
+            PanelY = MathMax(0, PanelY);
+            UpdateDisplay();
+         }
+      }
+      else
+      {
+         PanelDragging = false;
+      }
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -997,7 +1258,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 //+------------------------------------------------------------------+
 void OnTick()
 {
-   ChartSetString(ChartID(), CHART_COMMENT, "CONFLUENCE V1.0 - RATTANAC CHHORM");
+   ChartSetString(ChartID(), CHART_COMMENT, "Confluence V1.0 by Stephen REEN");
    UpdateDisplay();
 
    CheckFridayClose();

@@ -1,0 +1,47 @@
+; Confluence V1.0 — V9 Conservative Preset
+; Result: +$9,027 | Drawdown: 26.77% | Trades: 1,175
+; By Stephen REEN
+RiskPercent=0.5
+FixedLot=0.0
+MaxLotSize=0.05
+MaxDailyLossPercent=10.0
+MaxTradesPerDay=10
+MaxOpenPositions=3
+RewardRiskRatio=1.5
+UseTimeFilter=false
+MaxSpreadPoints=0
+MinStopDistance=20
+MaxConsecutiveLosses=10
+SessionSydney=false
+SessionTokyo=false
+SessionLondon=true
+SessionNewYork=true
+OverlapLondonNY=true
+OverlapTokyoLondon=false
+UseH4Filter=false
+UseRSIFilter=false
+RSIPeriod=14
+RSIOverbought=65
+RSIOversold=35
+UsePullbackFilter=false
+PullbackATRMultiplier=2.5
+UseATRFilter=false
+ATRMinPoints=50.0
+ATRMaxPoints=500.0
+SLBufferPips=15
+MaxSLPips=200
+UseTrailingStop=false
+TrailingStartPips=30
+TrailingStepPips=10
+CloseOnFriday=false
+FridayCloseHour=20
+UseBreakeven=false
+BreakevenTriggerPips=20
+UsePartialClose=false
+PartialClosePips=50
+PartialClosePercent=50
+SwingLookbackBars=100
+SwingConfirmBars=5
+ShowSwingLines=true
+ForceTrades=false
+UsePythonRisk=false
